@@ -119,66 +119,66 @@ const Vaccinations = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!patientId) return;
-    
-    try {
-      // Validate form data
-      if (!formData.name || !formData.dose || !formData.child_age || !formData.date_administered) {
-        toast({
-          title: "Missing fields",
-          description: "Please fill in all required fields.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const vaccinationData = {
-        name: formData.name,
-        alternatives: formData.alternatives || null,
-        dose: formData.dose,
-        child_age: formData.child_age,
-        date_administered: formData.date_administered,
-        notes: formData.notes || null
-      };
-
-      if (currentVaccination) {
-        // Update existing vaccination
-        const updatedVaccination = await PatientService.updateVaccination(
-          currentVaccination.id,
-          vaccinationData
-        );
-        
-        setVaccinations(prev => prev.map(v => 
-          v.id === currentVaccination.id ? updatedVaccination : v
-        ));
-      } else {
-        // Add new vaccination
-        const newVaccination = await PatientService.addVaccination(
-          patientId,
-          vaccinationData
-        );
-        
-        setVaccinations(prev => [newVaccination, ...prev]);
-      }
-      
-      setIsModalOpen(false);
-      resetForm();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!patientId) return;
+  
+  try {
+    // Validate form data
+    if (!formData.name || !formData.dose || !formData.child_age || !formData.date_administered) {
       toast({
-        title: "Success",
-        description: `Vaccination ${currentVaccination ? 'updated' : 'added'} successfully`,
-      });
-    } catch (error) {
-      console.error('Error saving vaccination:', error);
-      toast({
-        title: "Error",
-        description: `Failed to ${currentVaccination ? 'update' : 'add'} vaccination`,
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
+      return;
     }
-  };
+    
+    const vaccinationData = {
+      name: formData.name,
+      alternatives: formData.alternatives || null,
+      dose: formData.dose,
+      child_age: formData.child_age, // Make sure this matches backend
+      date_administered: formData.date_administered, // Make sure this matches backend
+      notes: formData.notes || null
+    };
+
+    if (currentVaccination) {
+      // Update existing vaccination
+      const updatedVaccination = await PatientService.updateVaccination(
+        currentVaccination.id,
+        vaccinationData
+      );
+      
+      setVaccinations(prev => prev.map(v => 
+        v.id === currentVaccination.id ? updatedVaccination : v
+      ));
+    } else {
+      // Add new vaccination
+      const newVaccination = await PatientService.addVaccination(
+        patientId,
+        vaccinationData
+      );
+      
+      setVaccinations(prev => [newVaccination, ...prev]);
+    }
+    
+    setIsModalOpen(false);
+    resetForm();
+    toast({
+      title: "Success",
+      description: `Vaccination ${currentVaccination ? 'updated' : 'added'} successfully`,
+    });
+  } catch (error) {
+    console.error('Error saving vaccination:', error);
+    toast({
+      title: "Error",
+      description: `Failed to ${currentVaccination ? 'update' : 'add'} vaccination: ${error.message}`,
+      variant: "destructive",
+    });
+  }
+};
 
   const handleDeleteClick = (vaccinationId: string) => {
     setVaccinationToDelete(vaccinationId);

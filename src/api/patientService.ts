@@ -64,13 +64,25 @@ async getVaccinations(patientId: string) {
 // Add a new vaccination
 async addVaccination(patientId: string, vaccinationData: any) {
   try {
-    const response = await axios.post(`${API_URL}/patients/${patientId}/vaccinations`, vaccinationData);
+    // Format the data to match backend expectations
+    const formattedData = {
+      ...vaccinationData,
+      dateAdministered: vaccinationData.date_administered,
+      childAge: vaccinationData.child_age
+    };
+    
+    const response = await axios.post(`${API_URL}/patients/${patientId}/vaccinations`, formattedData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     return response.data;
   } catch (error) {
-    console.error('Error adding vaccination:', error);
+    console.error('Error adding vaccination:', error.response?.data || error.message);
     throw error;
   }
 },
+
 
 // Update a vaccination
 // In your patientService.ts
