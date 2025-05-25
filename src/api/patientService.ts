@@ -216,31 +216,31 @@ async addScreeningTest(patientId: string, testData: any) {
 
 // Diagnostics
 async getDiagnostics(patientId: string) {
-  try {
-    const response = await axios.get(`${API_URL}/patients/${patientId}/diagnostics`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching diagnostics:', error);
-    throw error;
-  }
+    try {
+        const response = await axios.get(`${API_URL}/patients/${patientId}/diagnostics`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching diagnostics:', error);
+        throw error;
+    }
 },
 
 
 
 async uploadDiagnostic(patientId: string, diagnosticData: FormData) {
-  try {
-    console.log('Sending diagnostic data:', diagnosticData);
-    const response = await axios.post(`${API_URL}/patients/${patientId}/diagnostics`, diagnosticData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    console.log('Diagnostic response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error uploading diagnostic:', error.response?.data || error.message);
-    throw error;
-  }
+    try {
+        console.log('Sending diagnostic data:', diagnosticData);
+        const response = await axios.post(`${API_URL}/patients/${patientId}/diagnostics`, diagnosticData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        console.log('Diagnostic response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error uploading diagnostic:', error.response?.data || error.message);
+        throw error;
+    }
 },// Medical History
 async getFamilyHistory(patientId: string) {
   try {
