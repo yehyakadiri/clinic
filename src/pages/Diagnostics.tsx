@@ -474,11 +474,7 @@ const Diagnostics = () => {
                             <TableCell>{diagnostic.observations || 'N/A'}</TableCell>
                             <TableCell>
                               {diagnostic.file_path ? (
-                                <a 
-                                  href={`${API_URL}/uploads/${diagnostic.file_path}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                >
+                                <a href={`${API_URL}/uploads/${diagnostic.file_path.split('/').pop()}`} target="_blank" rel="noopener noreferrer">
                                   <Button variant="outline" size="sm" className="h-8">
                                     <FileSearch className="h-3 w-3 mr-1" />
                                     View

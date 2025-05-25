@@ -6,7 +6,6 @@ import { Calendar, Mail, Phone, School, Shield, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { PatientService } from '@/api/patientService';
 
-
 interface PatientDetails {
   id: string;
   full_name: string;
@@ -29,9 +28,6 @@ interface PatientDetails {
   prenatal_complications: string;
   icn_admission: string;
   icn_admission_reason: string;
-  primary_condition?: string;
-  screening_performed_date?: string;
-  diagnostic_result?: string;
 }
 
 const PatientDetails = () => {
@@ -56,6 +52,30 @@ const PatientDetails = () => {
     fetchPatient();
   }, [patientId]);
 
+const calculateAge = (dob: string) => {
+  const birthDate = new Date(dob);
+  const today = new Date();
+  
+  // Calculate if the birthday hasn't occurred yet this year
+  const hasBirthdayOccurred = (
+    today.getMonth() > birthDate.getMonth() || 
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate())
+  );
+  
+  const yearDiff = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  // If under 1 year, show months
+  if (yearDiff === 0 || (yearDiff === 1 && !hasBirthdayOccurred)) {
+    const totalMonths = monthDiff + (yearDiff * 12);
+    // Adjust for negative month difference
+    return totalMonths > 0 ? `${totalMonths} months` : "0 months";
+  }
+  
+  // Return years adjusted for whether birthday has occurred
+  return `${hasBirthdayOccurred ? yearDiff : yearDiff - 1} years`;
+};
+
   if (loading) {
     return <div>Loading patient details...</div>;
   }
@@ -70,25 +90,9 @@ const PatientDetails = () => {
     );
   }
 
-  // Calculate age from date of birth
-  const calculateAge = (dob: string) => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
-
   return (
-  <PageLayout title={patient.full_name} subtitle={`Patient ID: ${patient.id}`}>
-    {/* Add the PatientSubnav component */}
-    
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <PageLayout title={patient.full_name} subtitle={`Patient ID: ${patient.id}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* General Information Card */}
         <Card className="clinic-card lg:col-span-2">
           <CardHeader>
@@ -101,22 +105,17 @@ const PatientDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Age</p>
-                <p>{calculateAge(patient.date_of_birth)} years ({patient.gender})</p>
+                <p>{calculateAge(patient.date_of_birth)} ({patient.gender})</p>
               </div>
 
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Date of Birth</p>
-                <p>{patient.date_of_birth || 'N/A'}</p>
-              </div>
-              
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">Primary Condition</p>
-                <p>{patient.primary_condition || 'N/A'}</p>
+                <p>{new Date(patient.date_of_birth).toLocaleDateString()}</p>
               </div>
               
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">Parent's Name</p>
-                <p>{patient.parent_name || 'N/A'}</p>
+                <p>{patient.parent_name}</p>
               </div>
               
               <div className="space-y-1">
@@ -126,7 +125,7 @@ const PatientDetails = () => {
 
               <div className="md:col-span-2 space-y-1">
                 <p className="text-sm text-gray-500">Address</p>
-                <p>{patient.address || 'N/A'}</p>
+                <p>{patient.address}</p>
               </div>
             </div>
 
@@ -153,7 +152,7 @@ const PatientDetails = () => {
                 <p className="text-sm text-gray-500">Email</p>
                 <p className="flex items-center">
                   <Mail className="h-4 w-4 mr-1 text-gray-400" />
-                  {patient.email}
+                  {patient.email || 'N/A'}
                 </p>
               </div>
             </div>
@@ -190,27 +189,27 @@ const PatientDetails = () => {
           <CardContent className="space-y-4">
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Delivery Type</p>
-              <p>{patient.delivery_type}</p>
+              <p>{patient.delivery_type || 'N/A'}</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Weeks of Gestation</p>
-              <p>{patient.weeks_of_gestation} weeks</p>
+              <p>{patient.weeks_of_gestation || 'N/A'} weeks</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Birth Weight</p>
-              <p>{patient.birth_weight} kg</p>
+              <p>{patient.birth_weight || 'N/A'} kg</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Birth Height</p>
-              <p>{patient.birth_height} cm</p>
+              <p>{patient.birth_height || 'N/A'} cm</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Head Circumference</p>
-              <p>{patient.head_circumference} cm</p>
+              <p>{patient.head_circumference || 'N/A'} cm</p>
             </div>
             
             <div className="space-y-1">
@@ -220,33 +219,15 @@ const PatientDetails = () => {
             
             <div className="space-y-1">
               <p className="text-sm text-gray-500">ICN Admission</p>
-              <p>{patient.icn_admission}</p>
+              <p>{patient.icn_admission || 'N/A'}</p>
             </div>
             
             {patient.icn_admission === 'Yes' && (
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">ICN Admission Reason</p>
-                <p>{patient.icn_admission_reason}</p>
+                <p>{patient.icn_admission_reason || 'N/A'}</p>
               </div>
             )}
-            
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">Screening Performed Date</p>
-              <p>{patient.screening_performed_date || 'N/A'}</p>
-            </div>
-            
-            <div className="space-y-1">
-              <p className="text-sm text-gray-500">Diagnostic Result</p>
-              <p className={`${
-                patient.diagnostic_result === 'Normal' 
-                  ? 'text-green-600' 
-                  : patient.diagnostic_result === 'Abnormal'
-                  ? 'text-orange-600'
-                  : ''
-              }`}>
-                {patient.diagnostic_result || 'N/A'}
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

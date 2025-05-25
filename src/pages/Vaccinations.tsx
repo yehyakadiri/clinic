@@ -119,7 +119,7 @@ const Vaccinations = () => {
     setIsModalOpen(true);
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   
   if (!patientId) return;
@@ -139,8 +139,8 @@ const Vaccinations = () => {
       name: formData.name,
       alternatives: formData.alternatives || null,
       dose: formData.dose,
-      child_age: formData.child_age, // Make sure this matches backend
-      date_administered: formData.date_administered, // Make sure this matches backend
+      child_age: formData.child_age,
+      date_administered: formData.date_administered,
       notes: formData.notes || null
     };
 
@@ -152,7 +152,12 @@ const Vaccinations = () => {
       );
       
       setVaccinations(prev => prev.map(v => 
-        v.id === currentVaccination.id ? updatedVaccination : v
+        v.id === currentVaccination.id ? {
+          ...updatedVaccination,
+          // Ensure all fields are present
+          alternatives: updatedVaccination.alternatives || '',
+          notes: updatedVaccination.notes || ''
+        } : v
       ));
     } else {
       // Add new vaccination
@@ -161,7 +166,13 @@ const Vaccinations = () => {
         vaccinationData
       );
       
-      setVaccinations(prev => [newVaccination, ...prev]);
+      // Update state with the complete vaccination object from the server
+      setVaccinations(prev => [{
+        ...newVaccination,
+        // Ensure all fields are present
+        alternatives: newVaccination.alternatives || '',
+        notes: newVaccination.notes || ''
+      }, ...prev]);
     }
     
     setIsModalOpen(false);

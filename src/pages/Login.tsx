@@ -33,16 +33,7 @@ const Login = () => {
     }
   };
 
-  // Demo credentials for convenience
-  const loginAsDoctor = () => {
-    setEmail('doctor@clinic.com');
-    setPassword('lina');
-  };
-
-  const loginAsSecretary = () => {
-    setEmail('secretary@clinic.com');
-    setPassword('secretary123');
-  };
+ 
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -106,24 +97,7 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={loginAsDoctor}
-                className="text-gray-700 border-gray-300"
-              >
-                Doctor Demo
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={loginAsSecretary}
-                className="text-gray-700 border-gray-300"
-              >
-                Secretary Demo
-              </Button>
-            </div>
+           
           </div>
         </div>
       </div>

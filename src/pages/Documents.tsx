@@ -1,72 +1,127 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { getPatientById, getPatientDocuments } from '@/lib/mock-data';
 import { Download, FileText, Search } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { PatientService } from '@/api/patientService';
+
+interface Document {
+  id: string;
+  name: string;
+  type: string;
+  uploadDate: string;
+  fileUrl: string;
+  doctorNotes?: string;
+}
 
 const Documents = () => {
   const { patientId } = useParams();
-  const patient = getPatientById(patientId || '');
-  const documents = getPatientDocuments(patientId || '');
+  const [patient, setPatient] = useState<any>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Filter documents based on search term
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!patientId) return;
+      setLoading(true);
+      try {
+        const [patientData, diagnosticsData] = await Promise.all([
+          PatientService.getPatientById(patientId),
+          PatientService.getDiagnostics(patientId),
+        ]);
+        
+        setPatient(patientData);
+        
+        // Transform diagnostics data into documents format
+        const transformedDocuments = diagnosticsData.map((diagnostic: any) => ({
+          id: diagnostic.id,
+          name: diagnostic.test || 'Diagnostic Report',
+          type: 'diagnostic',
+          uploadDate: diagnostic.test_date,
+          fileUrl: diagnostic.file_path,
+          doctorNotes: diagnostic.observations
+        }));
+        
+        setDocuments(transformedDocuments);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch patient data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [patientId]);
+
   const filteredDocuments = documents.filter(doc =>
     doc.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Mock function to handle document viewing
   const handleViewDocument = (fileUrl: string) => {
-    // In a real app, this would open the document in a new tab or viewer
-    window.alert(`Viewing document: ${fileUrl}`);
+    if (!fileUrl) {
+      toast({
+        title: "Error",
+        description: "No file available to view",
+        variant: "destructive",
+      });
+      return;
+    }
+    window.open(`http://localhost:8082/uploads/${fileUrl}`, '_blank');
   };
 
-  // Mock function to handle document download
-  const handleDownloadDocument = (fileUrl: string, name: string) => {
-    // In a real app, this would trigger the download
-    window.alert(`Downloading document: ${name}`);
-  };
-
-  // Get document type label and class for styling
   const getDocumentTypeInfo = (type: string) => {
     switch (type) {
       case 'consultation':
-        return { 
+        return {
           label: 'Consultation',
           className: 'bg-blue-100 text-blue-800'
         };
       case 'diagnostic':
-        return { 
+        return {
           label: 'Diagnostic',
           className: 'bg-green-100 text-green-800'
         };
       case 'vaccination':
-        return { 
+        return {
           label: 'Vaccination',
           className: 'bg-purple-100 text-purple-800'
         };
       case 'medicalHistory':
-        return { 
+        return {
           label: 'Medical History',
           className: 'bg-orange-100 text-orange-800'
         };
       case 'billing':
-        return { 
+        return {
           label: 'Billing',
           className: 'bg-gray-100 text-gray-800'
         };
       default:
-        return { 
+        return {
           label: 'Other',
           className: 'bg-gray-100 text-gray-800'
         };
     }
   };
+
+  if (loading) {
+    return (
+      <PageLayout title="Loading...">
+        <div className="text-center py-8">
+          <p>Loading patient data...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   if (!patient) {
     return (
@@ -108,7 +163,7 @@ const Documents = () => {
             <TableBody>
               {filteredDocuments.map((document) => {
                 const typeInfo = getDocumentTypeInfo(document.type);
-                
+
                 return (
                   <TableRow key={document.id}>
                     <TableCell className="font-medium">
@@ -126,20 +181,13 @@ const Documents = () => {
                     <TableCell>{document.doctorNotes || 'N/A'}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleViewDocument(document.fileUrl)}
+                          disabled={!document.fileUrl}
                         >
                           View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDownloadDocument(document.fileUrl, document.name)}
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Download
                         </Button>
                       </div>
                     </TableCell>

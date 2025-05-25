@@ -61,45 +61,70 @@ async getVaccinations(patientId: string) {
   }
 },
 
-// Add a new vaccination
 async addVaccination(patientId: string, vaccinationData: any) {
   try {
-    // Format the data to match backend expectations
-    const formattedData = {
-      ...vaccinationData,
-      dateAdministered: vaccinationData.date_administered,
-      childAge: vaccinationData.child_age
+    // Transform data to match backend expectations
+    const payload = {
+      name: vaccinationData.name,
+      alternatives: vaccinationData.alternatives || null,
+      dose: vaccinationData.dose,
+      child_age: vaccinationData.child_age,
+      date_administered: vaccinationData.date_administered,
+      notes: vaccinationData.notes || null
     };
+
+    console.log('Sending to backend:', payload);
     
-    const response = await axios.post(`${API_URL}/patients/${patientId}/vaccinations`, formattedData, {
+    const response = await axios.post(`${API_URL}/patients/${patientId}/vaccinations`, payload, {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
+
+    console.log('Full backend response:', response);
+    
+    if (response.status !== 201) {
+      throw new Error(`Unexpected status code: ${response.status}`);
+    }
+
     return response.data;
   } catch (error) {
-    console.error('Error adding vaccination:', error.response?.data || error.message);
+    console.error('Detailed API error:', {
+      message: error.message,
+      response: error.response?.data,
+      config: error.config
+    });
     throw error;
   }
 },
 
-
-// Update a vaccination
-// In your patientService.ts
 async updateVaccination(vaccinationId: string, vaccinationData: any) {
   try {
-    const response = await axios.put(
-      `${API_URL}/vaccinations/${vaccinationId}`,
-      vaccinationData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }
-    );
-    return response.data;
+    // Transform data to match backend expectations
+    const payload = {
+      name: vaccinationData.name,
+      alternatives: vaccinationData.alternatives || null,
+      dose: vaccinationData.dose,
+      child_age: vaccinationData.child_age,
+      date_administered: vaccinationData.date_administered,
+      notes: vaccinationData.notes || null
+    };
+
+    const response = await axios.put(`${API_URL}/vaccinations/${vaccinationId}`, payload);
+    
+    // Transform response to frontend format
+    return {
+      id: response.data.id,
+      name: response.data.name,
+      alternatives: response.data.alternatives || '',
+      dose: response.data.dose,
+      child_age: response.data.childAge || response.data.child_age,
+      date_administered: response.data.dateAdministered || response.data.date_administered,
+      notes: response.data.notes || ''
+    };
   } catch (error) {
-    console.error('Error updating vaccination:', error);
+    console.error('Error updating vaccination:', error.response?.data || error.message);
     throw error;
   }
 },
@@ -249,7 +274,15 @@ async getSurgicalHistory(patientId: string) {
 
 async addSurgicalHistory(patientId: string, data: any) {
   try {
-    const response = await axios.post(`${API_URL}/patients/${patientId}/surgical-history`, data);
+    // Convert field names to snake_case for the backend
+    const payload = {
+      type: data.type,
+      date: data.date,
+      age_at_surgery: data.age_at_surgery || null,  // Use snake_case here
+      notes: data.notes || null
+    };
+    
+    const response = await axios.post(`${API_URL}/patients/${patientId}/surgical-history`, payload);
     return response.data;
   } catch (error) {
     console.error('Error adding surgical history:', error);
@@ -502,7 +535,7 @@ async addMedicalRecord(patientId: string, recordData: any) {
       visitType: recordData.visitType,
       weight: recordData.weight,
       height: recordData.height,
-      headCircumference: recordData.headCircumference,
+      head_circumference: recordData.head_circumference,
       pulse: recordData.pulse,
       temperature: recordData.temperature,
       bloodPressure: recordData.bloodPressure,
@@ -526,5 +559,14 @@ async addMedicalRecord(patientId: string, recordData: any) {
     console.error('Error adding medical record:', error);
     throw error;
   }
-},
+},// In your PatientService
+ async uploadScreeningTest(patientId: string, formData: FormData) {
+  const response = await fetch(`${API_URL}/patients/${patientId}/screening-tests`, {
+    method: 'POST',
+    body: formData,
+    // Don't set Content-Type header - the browser will set it automatically
+    // with the correct boundary for FormData
+  });
+  return response.json();
+}
 };

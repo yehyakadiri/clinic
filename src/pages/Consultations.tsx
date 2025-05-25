@@ -50,15 +50,15 @@ const Consultations = () => {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     notes: '',
-    vaccineName: '',
+    vaccine_name: '',
     childAge: '',
     weight: '',
     height: '',
-    headCircumference: '',
+    head_circumference: '',
     pulse: '',
     temperature: '',
-    bloodPressure: '',
-    respiratoryRate: '',
+    blood_pressure: '',
+    respiratory_rate: '',
     symptoms: '',
     diagnosis: '',
     medication: '',
@@ -68,13 +68,12 @@ const Consultations = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!patientId) return;
-      
+      setLoading(true);
       try {
         const [patientData, consultationsData] = await Promise.all([
           PatientService.getPatientById(patientId),
           PatientService.getConsultations(patientId)
         ]);
-        
         setPatient(patientData);
         setConsultations(consultationsData);
       } catch (error) {
@@ -88,7 +87,6 @@ const Consultations = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [patientId, toast]);
 
@@ -102,51 +100,46 @@ const Consultations = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!patientId) return;
-    
     try {
-      const consultationData = {
+      const consultationData: any = {
         type: consultationType,
         date: formData.date,
         notes: formData.notes,
-        ...(consultationType === 'vaccine' && {
-          vaccine_name: formData.vaccineName,
-          child_age: formData.childAge,
-          weight: parseFloat(formData.weight) || null,
-          height: parseFloat(formData.height) || null,
-          head_circumference: parseFloat(formData.headCircumference) || null,
-        }),
-        ...(consultationType === 'well-child' && {
-          weight: parseFloat(formData.weight) || null,
-          height: parseFloat(formData.height) || null,
-          head_circumference: parseFloat(formData.headCircumference) || null,
-          pulse: parseInt(formData.pulse) || null,
-          temperature: parseFloat(formData.temperature) || null,
-          blood_pressure: formData.bloodPressure || null,
-          respiratory_rate: parseInt(formData.respiratoryRate) || null,
-        }),
-        ...(consultationType === 'disease' && {
-          symptoms: formData.symptoms,
-          diagnosis: formData.diagnosis,
-          medication: formData.medication,
-          dosage: formData.dosage,
-          pulse: parseInt(formData.pulse) || null,
-          temperature: parseFloat(formData.temperature) || null,
-          blood_pressure: formData.bloodPressure || null,
-          respiratory_rate: parseInt(formData.respiratoryRate) || null,
-        }),
       };
 
+      if (consultationType === 'vaccine') {
+        consultationData.vaccine_name = formData.vaccine_name;
+        consultationData.child_age = formData.childAge;
+        consultationData.weight = formData.weight ? parseFloat(formData.weight) : null;
+        consultationData.height = formData.height ? parseFloat(formData.height) : null;
+        consultationData.head_circumference = formData.head_circumference ? parseFloat(formData.head_circumference) : null;
+      } else if (consultationType === 'well-child') {
+        consultationData.weight = formData.weight ? parseFloat(formData.weight) : null;
+        consultationData.height = formData.height ? parseFloat(formData.height) : null;
+        consultationData.head_circumference = formData.head_circumference ? parseFloat(formData.head_circumference) : null;
+      }
+
+      // Common vital signs for all consultation types
+      consultationData.pulse = formData.pulse ? parseInt(formData.pulse) : null;
+      consultationData.temperature = formData.temperature ? parseFloat(formData.temperature) : null;
+      consultationData.blood_pressure = formData.blood_pressure;
+      consultationData.respiratory_rate = formData.respiratory_rate ? parseInt(formData.respiratory_rate) : null;
+
+      if (consultationType === 'disease') {
+        consultationData.symptoms = formData.symptoms;
+        consultationData.diagnosis = formData.diagnosis;
+        consultationData.medication = formData.medication;
+        consultationData.dosage = formData.dosage;
+      }
+
       const newConsultation = await PatientService.addConsultation(patientId, consultationData);
-      
-      setConsultations(prev => [newConsultation, ...prev]);
-      
+      const updatedConsultations = await PatientService.getConsultations(patientId);
+      setConsultations(updatedConsultations);
       toast({
         title: "Success",
         description: "Consultation added successfully",
       });
-      
       setIsModalOpen(false);
       resetForm();
     } catch (error) {
@@ -163,15 +156,15 @@ const Consultations = () => {
     setFormData({
       date: new Date().toISOString().split('T')[0],
       notes: '',
-      vaccineName: '',
+      vaccine_name: '',
       childAge: '',
       weight: '',
       height: '',
-      headCircumference: '',
+      head_circumference: '',
       pulse: '',
       temperature: '',
-      bloodPressure: '',
-      respiratoryRate: '',
+      blood_pressure: '',
+      respiratory_rate: '',
       symptoms: '',
       diagnosis: '',
       medication: '',
@@ -179,58 +172,110 @@ const Consultations = () => {
     });
   };
 
+  const renderField = (label: string, value?: string | number, unit?: string) => {
+    if (value === null || value === undefined || value === '') return null;
+    return (
+      <div className="flex justify-between text-sm py-0.5">
+        <span className="font-medium text-gray-700">{label}</span>
+        <span className="text-gray-900">{value}{unit ? ` ${unit}` : ''}</span>
+      </div>
+    );
+  };
+
+  const calculateAgeAtConsultation = (consultationDate: string) => {
+    if (!patient?.date_of_birth || !consultationDate) return null;
+    
+    const birthDate = new Date(patient.date_of_birth);
+    const consultDate = new Date(consultationDate);
+    const diffInMonths = (consultDate.getFullYear() - birthDate.getFullYear()) * 12 + 
+                         (consultDate.getMonth() - birthDate.getMonth());
+    
+    if (diffInMonths < 12) {
+      return `${diffInMonths} months`;
+    } else {
+      const years = Math.floor(diffInMonths / 12);
+      const remainingMonths = diffInMonths % 12;
+      return `${years} years and${remainingMonths > 0 ? ` ${remainingMonths} months` : ''}`;
+    }
+  };
+
+  const renderConsultationDetails = (consultation: Consultation) => {
+    const ageAtConsultation = calculateAgeAtConsultation(consultation.date);
+
+    return (
+      <div className="space-y-2">
+        {ageAtConsultation && (
+  <div className="text-sm py-0.5">
+    <span className="font-medium text-gray-700">
+      Child's Age:&nbsp;
+      <span className="text-gray-900 font-normal">{ageAtConsultation}</span>
+    </span>
+  </div>
+)}
+
+
+        {consultation.type === 'vaccine' && (
+          <div className="mb-2">
+            {renderField('Vaccine Name', consultation.vaccine_name)}
+            {renderField("Child's Age", consultation.child_age)}
+            <div className="font-semibold text-xs text-gray-500 mt-2 mb-1">Growth Measurements</div>
+            {renderField('Weight', consultation.weight, 'kg')}
+            {renderField('Height', consultation.height, 'cm')}
+            {renderField('Head Circumference', consultation.head_circumference, 'cm')}
+          </div>
+        )}
+
+        {consultation.type === 'well-child' && (
+          <>
+            <div className="font-semibold text-xs text-gray-500 mb-1">Growth Measurements</div>
+            {renderField('Weight', consultation.weight, 'kg')}
+            {renderField('Height', consultation.height, 'cm')}
+            {renderField('Head Circumference', consultation.head_circumference, 'cm')}
+          </>
+        )}
+
+        <div className="font-semibold text-xs text-gray-500 mt-2 mb-1">Vital Signs</div>
+        {renderField('Pulse', consultation.pulse, 'bpm')}
+        {renderField('Temperature', consultation.temperature, '°C')}
+        {renderField('Blood Pressure', consultation.blood_pressure, 'mmHg')}
+        {renderField('Respiratory Rate', consultation.respiratory_rate, 'breaths/min')}
+
+        {consultation.type === 'disease' && (
+          <>
+            {renderField('Symptoms', consultation.symptoms)}
+            {renderField('Diagnosis', consultation.diagnosis)}
+            {renderField('Medication', consultation.medication)}
+            {renderField('Dosage', consultation.dosage)}
+          </>
+        )}
+      </div>
+    );
+  };
+
   const getConsultationIcon = (type: string) => {
     switch (type) {
-      case 'vaccine':
-        return <Syringe className="h-5 w-5 text-green-600" />;
-      case 'well-child':
-        return <Baby className="h-5 w-5 text-blue-600" />;
-      case 'disease':
-        return <Activity className="h-5 w-5 text-orange-600" />;
-      default:
-        return <Stethoscope className="h-5 w-5 text-medical-600" />;
+      case 'vaccine': return <Syringe className="h-5 w-5 text-green-600" />;
+      case 'well-child': return <Baby className="h-5 w-5 text-blue-600" />;
+      case 'disease': return <Activity className="h-5 w-5 text-orange-600" />;
+      default: return <Stethoscope className="h-5 w-5 text-medical-600" />;
     }
   };
 
   const getConsultationTitle = (consultation: Consultation) => {
     switch (consultation.type) {
-      case 'vaccine':
-        return `Vaccine: ${consultation.vaccine_name || 'Unspecified'}`;
-      case 'well-child':
-        return 'Well-Child Visit';
-      case 'disease':
-        return `Disease: ${consultation.diagnosis || 'Unspecified'}`;
-      default:
-        return 'Consultation';
-    }
-  };
-
-  const getConsultationDetails = (consultation: Consultation) => {
-    switch (consultation.type) {
-      case 'vaccine':
-        return consultation.child_age ? `Age: ${consultation.child_age}` : '';
-      case 'well-child':
-        if (consultation.height && consultation.weight) {
-          return `Height: ${consultation.height}cm, Weight: ${consultation.weight}kg`;
-        }
-        return '';
-      case 'disease':
-        return consultation.symptoms || '';
-      default:
-        return '';
+      case 'vaccine': return `Vaccine: ${consultation.vaccine_name || 'Not specified'}`;
+      case 'well-child': return 'Well-Child Visit';
+      case 'disease': return `Diagnosis: ${consultation.diagnosis || 'Not specified'}`;
+      default: return 'Consultation';
     }
   };
 
   const getConsultationTypeClass = (type: string) => {
     switch (type) {
-      case 'vaccine':
-        return 'bg-green-100 text-green-800';
-      case 'well-child':
-        return 'bg-blue-100 text-blue-800';
-      case 'disease':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'vaccine': return 'bg-green-100 text-green-800';
+      case 'well-child': return 'bg-blue-100 text-blue-800';
+      case 'disease': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -254,7 +299,7 @@ const Consultations = () => {
 
   return (
     <PageLayout
-      title="Consultations & Visits"
+      title="Consultations"
       subtitle={`Patient: ${patient.full_name}`}
       rightContent={
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -271,9 +316,8 @@ const Consultations = () => {
                 Record details of the patient's visit and clinical notes.
               </DialogDescription>
             </DialogHeader>
-            
-            <Tabs 
-              defaultValue="vaccine" 
+            <Tabs
+              defaultValue="vaccine"
               value={consultationType}
               onValueChange={(value) => setConsultationType(value as any)}
               className="w-full"
@@ -292,9 +336,7 @@ const Consultations = () => {
                   Disease Visit
                 </TabsTrigger>
               </TabsList>
-              
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Common fields for all visit types */}
                 <div className="space-y-2">
                   <Label htmlFor="date">Date <span className="text-red-500">*</span></Label>
                   <Input
@@ -307,14 +349,13 @@ const Consultations = () => {
                   />
                 </div>
 
-                {/* Vaccine Visit Fields */}
                 <TabsContent value="vaccine" className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="vaccineName">Vaccine Name <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="vaccine_name">Vaccine Name <span className="text-red-500">*</span></Label>
                     <Input
-                      id="vaccineName"
-                      name="vaccineName"
-                      value={formData.vaccineName}
+                      id="vaccine_name"
+                      name="vaccine_name"
+                      value={formData.vaccine_name}
                       onChange={handleInputChange}
                       placeholder="e.g., MMR, DTaP, Hepatitis B"
                       required={consultationType === 'vaccine'}
@@ -365,15 +406,15 @@ const Consultations = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="headCircumference" className="flex items-center gap-1">
+                        <Label htmlFor="head_circumference" className="flex items-center gap-1">
                           Head Circumference (cm) <span className="text-red-500">*</span>
                         </Label>
                         <Input
-                          id="headCircumference"
-                          name="headCircumference"
+                          id="head_circumference"
+                          name="head_circumference"
                           type="number"
                           step="0.1"
-                          value={formData.headCircumference}
+                          value={formData.head_circumference}
                           onChange={handleInputChange}
                           placeholder="0.0"
                           required={consultationType === 'vaccine'}
@@ -383,7 +424,6 @@ const Consultations = () => {
                   </div>
                 </TabsContent>
 
-                {/* Well-Child Visit Fields */}
                 <TabsContent value="well-child" className="space-y-4">
                   <div className="border p-4 rounded-md bg-gray-50 space-y-4">
                     <h3 className="font-medium text-gray-900">Growth Measurements</h3>
@@ -419,15 +459,15 @@ const Consultations = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="headCircumference" className="flex items-center gap-1">
+                        <Label htmlFor="head_circumference" className="flex items-center gap-1">
                           Head Circumference (cm) <span className="text-red-500">*</span>
                         </Label>
                         <Input
-                          id="headCircumference"
-                          name="headCircumference"
+                          id="head_circumference"
+                          name="head_circumference"
                           type="number"
                           step="0.1"
-                          value={formData.headCircumference}
+                          value={formData.head_circumference}
                           onChange={handleInputChange}
                           placeholder="0.0"
                           required={consultationType === 'well-child'}
@@ -436,69 +476,68 @@ const Consultations = () => {
                     </div>
                   </div>
                   <div className="border p-4 rounded-md bg-gray-50 space-y-4">
-                    <h3 className="font-medium text-gray-900">Vital Signs</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="pulse" className="flex items-center gap-1">
-                          <HeartPulse className="h-4 w-4" /> Pulse (bpm) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="pulse"
-                          name="pulse"
-                          type="number"
-                          value={formData.pulse}
-                          onChange={handleInputChange}
-                          placeholder="0"
-                          required={consultationType === 'well-child'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="temperature" className="flex items-center gap-1">
-                          <Thermometer className="h-4 w-4" /> Temperature (°C) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="temperature"
-                          name="temperature"
-                          type="number"
-                          step="0.1"
-                          value={formData.temperature}
-                          onChange={handleInputChange}
-                          placeholder="37.0"
-                          required={consultationType === 'well-child'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bloodPressure" className="flex items-center gap-1">
-                          Blood Pressure (mmHg) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bloodPressure"
-                          name="bloodPressure"
-                          value={formData.bloodPressure}
-                          onChange={handleInputChange}
-                          placeholder="120/80"
-                          required={consultationType === 'well-child'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="respiratoryRate" className="flex items-center gap-1">
-                          Respiratory Rate (breaths/min) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="respiratoryRate"
-                          name="respiratoryRate"
-                          type="number"
-                          value={formData.respiratoryRate}
-                          onChange={handleInputChange}
-                          placeholder="0"
-                          required={consultationType === 'well-child'}
-                        />
-                      </div>
+                  <h3 className="font-medium text-gray-900">Vital Signs</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pulse" className="flex items-center gap-1">
+                        <HeartPulse className="h-4 w-4" /> Pulse (bpm) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="pulse"
+                        name="pulse"
+                        type="number"
+                        value={formData.pulse}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        required={consultationType === 'well-child'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="temperature" className="flex items-center gap-1">
+                        <Thermometer className="h-4 w-4" /> Temperature (°C) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="temperature"
+                        name="temperature"
+                        type="number"
+                        step="0.1"
+                        value={formData.temperature}
+                        onChange={handleInputChange}
+                        placeholder="37.0"
+                        required={consultationType === 'well-child'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="blood_pressure" className="flex items-center gap-1">
+                        Blood Pressure (mmHg) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="blood_pressure"
+                        name="blood_pressure"
+                        value={formData.blood_pressure}
+                        onChange={handleInputChange}
+                        placeholder="120/80"
+                        required={consultationType === 'well-child'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="respiratory_rate" className="flex items-center gap-1">
+                        Respiratory Rate (breaths/min) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="respiratory_rate"
+                        name="respiratory_rate"
+                        type="number"
+                        value={formData.respiratory_rate}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        required={consultationType === 'well-child'}
+                      />
                     </div>
                   </div>
+                </div>
                 </TabsContent>
 
-                {/* Disease Visit Fields */}
                 <TabsContent value="disease" className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="symptoms">Symptoms <span className="text-red-500">*</span></Label>
@@ -546,71 +585,72 @@ const Consultations = () => {
                       />
                     </div>
                   </div>
-                  
                   <div className="border p-4 rounded-md bg-gray-50 space-y-4">
-                    <h3 className="font-medium text-gray-900">Vital Signs</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="pulse" className="flex items-center gap-1">
-                          <HeartPulse className="h-4 w-4" /> Pulse (bpm) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="pulse"
-                          name="pulse"
-                          type="number"
-                          value={formData.pulse}
-                          onChange={handleInputChange}
-                          placeholder="0"
-                          required={consultationType === 'disease'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="temperature" className="flex items-center gap-1">
-                          <Thermometer className="h-4 w-4" /> Temperature (°C) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="temperature"
-                          name="temperature"
-                          type="number"
-                          step="0.1"
-                          value={formData.temperature}
-                          onChange={handleInputChange}
-                          placeholder="37.0"
-                          required={consultationType === 'disease'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bloodPressure" className="flex items-center gap-1">
-                          Blood Pressure (mmHg) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bloodPressure"
-                          name="bloodPressure"
-                          value={formData.bloodPressure}
-                          onChange={handleInputChange}
-                          placeholder="120/80"
-                          required={consultationType === 'disease'}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="respiratoryRate" className="flex items-center gap-1">
-                          Respiratory Rate (breaths/min) <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="respiratoryRate"
-                          name="respiratoryRate"
-                          type="number"
-                          value={formData.respiratoryRate}
-                          onChange={handleInputChange}
-                          placeholder="0"
-                          required={consultationType === 'disease'}
-                        />
-                      </div>
+                  <h3 className="font-medium text-gray-900">Vital Signs</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pulse" className="flex items-center gap-1">
+                        <HeartPulse className="h-4 w-4" /> Pulse (bpm) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="pulse"
+                        name="pulse"
+                        type="number"
+                        value={formData.pulse}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        required={consultationType === 'disease'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="temperature" className="flex items-center gap-1">
+                        <Thermometer className="h-4 w-4" /> Temperature (°C) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="temperature"
+                        name="temperature"
+                        type="number"
+                        step="0.1"
+                        value={formData.temperature}
+                        onChange={handleInputChange}
+                        placeholder="37.0"
+                        required={consultationType === 'disease'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="blood_pressure" className="flex items-center gap-1">
+                        Blood Pressure (mmHg) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="blood_pressure"
+                        name="blood_pressure"
+                        value={formData.blood_pressure}
+                        onChange={handleInputChange}
+                        placeholder="120/80"
+                        required={consultationType === 'disease'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="respiratory_rate" className="flex items-center gap-1">
+                        Respiratory Rate (breaths/min) <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="respiratory_rate"
+                        name="respiratory_rate"
+                        type="number"
+                        value={formData.respiratory_rate}
+                        onChange={handleInputChange}
+                        placeholder="0"
+                        required={consultationType === 'disease'}
+                      />
                     </div>
                   </div>
+                </div>
                 </TabsContent>
 
-                {/* Doctor's Notes (common for all types) */}
+                {/* Common vital signs for all consultation types */}
+                
+
                 <div className="space-y-2 pt-4">
                   <Label htmlFor="notes">Doctor's Notes</Label>
                   <Textarea
@@ -637,7 +677,6 @@ const Consultations = () => {
         </Dialog>
       }
     >
-      
       {consultations.length > 0 ? (
         <div className="space-y-4">
           {consultations.map((consultation) => (
@@ -646,24 +685,26 @@ const Consultations = () => {
                 <div className="flex justify-between items-start">
                   <div className="flex items-start space-x-3">
                     <div className="mt-1">{getConsultationIcon(consultation.type)}</div>
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center mb-1">
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${getConsultationTypeClass(consultation.type)}`}>
                           {consultation.type.charAt(0).toUpperCase() + consultation.type.slice(1)}
                         </span>
-                        <span className="text-sm text-gray-500 ml-2">{new Date(consultation.date).toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          {new Date(consultation.date).toLocaleDateString()}
+                        </span>
                       </div>
                       <h3 className="font-medium text-gray-900">
                         {getConsultationTitle(consultation)}
                       </h3>
-                      {getConsultationDetails(consultation) && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {getConsultationDetails(consultation)}
-                        </p>
-                      )}
+                      <div className="mt-2">
+                        {renderConsultationDetails(consultation)}
+                      </div>
                       <div className="mt-3">
                         <h4 className="text-xs font-medium text-gray-500 uppercase">Doctor's Notes</h4>
-                        <p className="mt-1 text-gray-800">{consultation.notes || 'No notes recorded'}</p>
+                        <p className="mt-1 text-gray-800">
+                          {consultation.notes || 'No notes recorded'}
+                        </p>
                       </div>
                     </div>
                   </div>

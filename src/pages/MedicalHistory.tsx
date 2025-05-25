@@ -58,7 +58,7 @@ const MedicalHistory = () => {
   const [surgicalForm, setSurgicalForm] = useState({
     type: '',
     date: '',
-    ageAtSurgery: '',
+    age_at_surgery: '',
     notes: ''
   });
 
@@ -72,8 +72,8 @@ const MedicalHistory = () => {
 
   const [chronicForm, setChronicForm] = useState({
     medication: '',
-    birthTo1YearPrevention: '',
-    oneYearTo2YearsPrevention: '',
+    birth_to_1_year_prevention: '',
+    one_year_to_2_years_prevention: '',
     treatment: '',
     notes: ''
   });
@@ -171,7 +171,7 @@ const MedicalHistory = () => {
       const newRecord = await PatientService.addSurgicalHistory(patientId!, {
         type: surgicalForm.type,
         date: surgicalForm.date,
-        age_at_surgery: surgicalForm.ageAtSurgery,
+        age_at_surgery: surgicalForm.age_at_surgery,
         notes: surgicalForm.notes
       });
       setSurgicalHistory(prev => [newRecord, ...prev]);
@@ -183,7 +183,7 @@ const MedicalHistory = () => {
       setSurgicalForm({
         type: '',
         date: '',
-        ageAtSurgery: '',
+        age_at_surgery: '',
         notes: ''
       });
     } catch (error) {
@@ -261,8 +261,8 @@ const handleChronicSubmit = async (e: React.FormEvent) => {
     console.log('Submitting chronic therapy:', chronicForm);
     const newRecord = await PatientService.addChronicTherapy(patientId!, {
       medication: chronicForm.medication,
-      birthTo1YearPrevention: chronicForm.birthTo1YearPrevention,
-      oneYearTo2YearsPrevention: chronicForm.oneYearTo2YearsPrevention,
+      birth_to_1_year_prevention: chronicForm.birth_to_1_year_prevention,
+      one_year_to_2_years_prevention: chronicForm.one_year_to_2_years_prevention,
       treatment: chronicForm.treatment,
       notes: chronicForm.notes
     });
@@ -277,8 +277,8 @@ const handleChronicSubmit = async (e: React.FormEvent) => {
     setIsModalOpen(false);
     setChronicForm({
       medication: '',
-      birthTo1YearPrevention: '',
-      oneYearTo2YearsPrevention: '',
+      birth_to_1_year_prevention: '',
+      one_year_to_2_years_prevention: '',
       treatment: '',
       notes: ''
     });
@@ -741,11 +741,11 @@ const handleTreatmentSubmit = async (e: React.FormEvent) => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="ageAtSurgery">Age at Surgery</Label>
+                <Label htmlFor="age_at_surgery">Age at Surgery</Label>
                 <Input 
-                  id="ageAtSurgery" 
-                  value={surgicalForm.ageAtSurgery}
-                  onChange={(e) => setSurgicalForm({...surgicalForm, ageAtSurgery: e.target.value})}
+                  id="age_at_surgery" 
+                  value={surgicalForm.age_at_surgery}
+                  onChange={(e) => setSurgicalForm({...surgicalForm, age_at_surgery: e.target.value})}
                   placeholder="e.g., 5 years" 
                 />
               </div>
@@ -867,8 +867,8 @@ const handleTreatmentSubmit = async (e: React.FormEvent) => {
                 <Label htmlFor="birth1Year">Birth → 1 Year Prevention</Label>
                 <Input 
                   id="birth1Year" 
-                  value={chronicForm.birthTo1YearPrevention}
-                  onChange={(e) => setChronicForm({...chronicForm, birthTo1YearPrevention: e.target.value})}
+                  value={chronicForm.birth_to_1_year_prevention}
+                  onChange={(e) => setChronicForm({...chronicForm, birth_to_1_year_prevention: e.target.value})}
                   placeholder="Prevention measures for infants" 
                 />
               </div>
@@ -877,8 +877,8 @@ const handleTreatmentSubmit = async (e: React.FormEvent) => {
                 <Label htmlFor="1to2Years">1 Year → 2 Years Prevention</Label>
                 <Input 
                   id="1to2Years" 
-                  value={chronicForm.oneYearTo2YearsPrevention}
-                  onChange={(e) => setChronicForm({...chronicForm, oneYearTo2YearsPrevention: e.target.value})}
+                  value={chronicForm.one_year_to_2_years_prevention}
+                  onChange={(e) => setChronicForm({...chronicForm, one_year_to_2_years_prevention: e.target.value})}
                   placeholder="Prevention measures for toddlers" 
                 />
               </div>

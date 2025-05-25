@@ -44,7 +44,7 @@ export interface BillingRecord {
   paid: boolean;
   paidAmount: number;
   unpaidAmount: number;
-  paymentMethod?: string;
+  payment_method?: string;
   notes?: string;
 }
 
@@ -58,7 +58,7 @@ const BillingForm: React.FC<BillingFormProps> = ({ isOpen, onClose, onAddBilling
   const [service, setService] = useState('');
   const [cost, setCost] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [payment_method, setpayment_method] = useState('');
   const [notes, setNotes] = useState('');
   const [formStep, setFormStep] = useState<FormStep>(FormStep.BILLING_DETAILS);
   const [unpaidAmount, setUnpaidAmount] = useState('');
@@ -77,7 +77,7 @@ const BillingForm: React.FC<BillingFormProps> = ({ isOpen, onClose, onAddBilling
     setService('');
     setCost('');
     setDate(new Date().toISOString().split('T')[0]);
-    setPaymentMethod('');
+    setpayment_method('');
     setNotes('');
     setFormStep(FormStep.BILLING_DETAILS);
     setUnpaidAmount('');
@@ -198,7 +198,7 @@ const BillingForm: React.FC<BillingFormProps> = ({ isOpen, onClose, onAddBilling
       paid: isPaid,
       paidAmount,
       unpaidAmount,
-      paymentMethod: paymentMethod || 'N/A',
+      payment_method: payment_method || 'N/A',
       notes
     };
     
@@ -264,8 +264,8 @@ const BillingForm: React.FC<BillingFormProps> = ({ isOpen, onClose, onAddBilling
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <Label htmlFor="payment_method">Payment Method</Label>
+              <Select value={payment_method} onValueChange={setpayment_method}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>

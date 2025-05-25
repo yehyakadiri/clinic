@@ -1,28 +1,24 @@
-
 import { Link } from 'react-router-dom';
 import { Search, Plus, UserCircle } from 'lucide-react';
 import PageLayout from '@/components/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockPatients } from '@/lib/mock-data';
-
 import { useEffect, useState } from 'react';
 import { PatientService } from '@/api/patientService';
 
 interface Patient {
   id: string;
   full_name: string;
-  age: number;
+  age: string; // Now a string like "2 years" or "6 months"
   gender: string;
-  diagnosis?: string;
-}
+  address: string;
+} 
 
 const Patients = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch patients from backend
   useEffect(() => {
     const fetchPatients = async () => {
       try {
@@ -38,7 +34,6 @@ const Patients = () => {
     fetchPatients();
   }, []);
 
-  // Filter patients based on search term
   const filteredPatients = patients.filter((patient) =>
     patient.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -73,7 +68,7 @@ const Patients = () => {
         </div>
       </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredPatients.length > 0 ? (
           filteredPatients.map((patient) => (
             <Link
@@ -90,10 +85,10 @@ const Patients = () => {
                     <div>
                       <h3 className="font-medium text-gray-900">{patient.full_name}</h3>
                       <div className="text-sm text-gray-500 mt-1">
-                        {patient.age} years • {patient.gender}
+                        {patient.age} • {patient.gender}
                       </div>
-                      <div className="mt-3 inline-flex px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                        {patient.diagnosis || 'No diagnosis'}
+                      <div className="text-xs text-gray-500 mt-1">
+                        {patient.address}
                       </div>
                     </div>
                   </div>

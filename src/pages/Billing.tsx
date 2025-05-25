@@ -95,7 +95,7 @@ const Billing = () => {
         paid: newBilling.paid,
         paid_amount: Number(newBilling.paidAmount),
         unpaid_amount: Number(newBilling.unpaidAmount),
-        payment_method: newBilling.paymentMethod,
+        payment_method: newBilling.payment_method,
         notes: newBilling.notes
       });
       
@@ -219,7 +219,7 @@ const Billing = () => {
         paid: isFullyPaid,
         paid_amount: newPaid,
         unpaid_amount: newUnpaid,
-        payment_method: selectedRecord.paymentMethod
+        payment_method: selectedRecord.payment_method
       });
       
       // Update the UI state
@@ -361,7 +361,7 @@ const Billing = () => {
                   <TableCell>{formatCurrency(Number(record.cost))}</TableCell>
                   <TableCell>{formatCurrency(Number(record.paidAmount))}</TableCell>
                   <TableCell>{formatCurrency(Number(record.unpaidAmount))}</TableCell>
-                  <TableCell>{record.paymentMethod || 'N/A'}</TableCell>
+                  <TableCell>{record.payment_method || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={record.paid ? "default" : "outline"} 
