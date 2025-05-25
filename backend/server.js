@@ -6,22 +6,35 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import mysql from 'mysql';
+      import fs from 'fs';
+import { createReadStream } from 'fs';
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 8082;
 
+
 // JWT Configuration
 const JWT_SECRET = 'your-very-secret-key';
 
 // Multer Configuration
+
+
+import { fileURLToPath } from 'url';
+
+// Declare once at the top of the module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, 'uploads')); // Use absolute path
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + path.extname(file.originalname));
+    }
 });
 const upload = multer({ storage: storage });
 
@@ -506,123 +519,122 @@ async function initializeDatabaseAndStartServer() {
       });
 
       // Vaccinations routes
-      app.get('/patients/:id/vaccinations', async (req, res) => {
-        try {
-          const { id } = req.params;
-          const sql = `
-            SELECT 
-              id,
-              name,
-              alternatives,
-              dose,
-              child_age as childAge,
-              DATE_FORMAT(date_administered, '%Y-%m-%d') as dateAdministered,
-              notes
-            FROM vaccinations 
-            WHERE patient_id = ? 
-            ORDER BY date_administered DESC
-          `;
-          const results = await executeQuery(db, sql, [id]);
-          res.json(results);
-        } catch (err) {
-          console.error('Error fetching vaccinations:', err);
-          res.status(500).json({ message: 'Internal server error' });
-        }
-      });
-
-      app.post('/patients/:id/vaccinations', async (req, res) => {
-        try {
-          const { id } = req.params;
-          const vaccination = req.body;
-          
-          // Validate required fields
-          if (!vaccination.name || !vaccination.dose || !vaccination.childAge || !vaccination.dateAdministered) {
-            return res.status(400).json({ message: 'Missing required fields' });
-          }
-          
-          const vaccinationId = uuidv4();
-
-          const sql = `
-            INSERT INTO vaccinations (
-              id, patient_id, name, alternatives, dose, 
-              child_age, date_administered, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `;
-
-          const values = [
-            vaccinationId, id, 
-            vaccination.name, 
-            vaccination.alternatives || null,
-            vaccination.dose,
-            vaccination.childAge,
-            vaccination.dateAdministered,
-            vaccination.notes || null
-          ];
-
-          await executeQuery(db, sql, values);
-          res.status(201).json({ 
-            message: 'Vaccination added successfully', 
-            id: vaccinationId,
-            vaccination: {
-              id: vaccinationId,
-              ...vaccination
-            }
-          });
-        } catch (err) {
-          console.error('Error adding vaccination:', err);
-          res.status(500).json({ message: 'Internal server error' });
-        }
-      });
-
-      app.put('/vaccinations/:id', async (req, res) => {
-        try {
-          const { id } = req.params;
-          const { name, alternatives, dose, child_age, date_administered, notes } = req.body;
-
-          // Validate required fields
-          if (!name || !dose || !child_age || !date_administered) {
-            return res.status(400).json({ message: 'Missing required fields' });
-          }
-
-          const sql = `
-            UPDATE vaccinations SET
-              name = ?,
-              alternatives = ?,
-              dose = ?,
-              child_age = ?,
-              date_administered = ?,
-              notes = ?
-            WHERE id = ?
-          `;
-
-          const values = [
+    app.get('/patients/:id/vaccinations', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const sql = `
+          SELECT 
+            id,
             name,
-            alternatives || null,
+            COALESCE(alternatives, '') as alternatives,
             dose,
             child_age,
-            date_administered,
-            notes || null,
-            id
-          ];
-
-          const result = await executeQuery(db, sql, values);
-          
-          if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Vaccination not found' });
-          }
-          
-          // Return the updated vaccination
-          const updatedVaccination = await executeQuery(db, 
-            'SELECT * FROM vaccinations WHERE id = ?', 
-            [id]
-          );
-          
-          res.json(updatedVaccination[0]);
-        } catch (err) {
-          console.error('Error updating vaccination:', err);
-          res.status(500).json({ message: 'Internal server error' });
+            DATE_FORMAT(date_administered, '%Y-%m-%d') as date_administered,
+            COALESCE(notes, '') as notes
+          FROM vaccinations 
+          WHERE patient_id = ?
+          ORDER BY date_administered DESC
+        `;
+        const results = await executeQuery(db, sql, [id]);
+        res.json(results);
+      } catch (err) {
+        console.error('Error fetching vaccinations:', err);
+        res.status(500).json({ message: 'Failed to fetch vaccinations' });
+      }
+    });
+    
+    // POST - Add new vaccination
+    app.post('/patients/:id/vaccinations', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, alternatives, dose, child_age, date_administered, notes } = req.body;
+        
+        // Validate required fields
+        if (!name || !dose || !child_age || !date_administered) {
+          return res.status(400).json({ message: 'Missing required fields' });
         }
-      });
+    
+        const vaccinationId = uuidv4();
+        const sql = `
+          INSERT INTO vaccinations 
+          (id, patient_id, name, alternatives, dose, child_age, date_administered, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+    
+        await executeQuery(db, sql, [
+          vaccinationId, id, name, 
+          alternatives || null, 
+          dose, 
+          child_age, 
+          date_administered, 
+          notes || null
+        ]);
+    
+        // Return the created record
+        const [newVaccination] = await executeQuery(db, `
+          SELECT * FROM vaccinations WHERE id = ?
+        `, [vaccinationId]);
+    
+        res.status(201).json({
+          ...newVaccination,
+          date_administered: newVaccination.date_administered.toISOString().split('T')[0]
+        });
+      } catch (err) {
+        console.error('Error adding vaccination:', err);
+        res.status(500).json({ message: 'Failed to add vaccination' });
+      }
+    });
+    
+    // PUT - Update vaccination
+    app.put('/vaccinations/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, alternatives, dose, child_age, date_administered, notes } = req.body;
+    
+        if (!name || !dose || !child_age || !date_administered) {
+          return res.status(400).json({ message: 'Missing required fields' });
+        }
+    
+        const sql = `
+          UPDATE vaccinations SET
+            name = ?,
+            alternatives = ?,
+            dose = ?,
+            child_age = ?,
+            date_administered = ?,
+            notes = ?
+          WHERE id = ?
+        `;
+    
+        const result = await executeQuery(db, sql, [
+          name,
+          alternatives || null,
+          dose,
+          child_age,
+          date_administered,
+          notes || null,
+          id
+        ]);
+    
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ message: 'Vaccination not found' });
+        }
+    
+        const [updatedVaccination] = await executeQuery(db, `
+          SELECT * FROM vaccinations WHERE id = ?
+        `, [id]);
+    
+        res.json({
+          ...updatedVaccination,
+          date_administered: updatedVaccination.date_administered.toISOString().split('T')[0]
+        });
+      } catch (err) {
+        console.error('Error updating vaccination:', err);
+        res.status(500).json({ message: 'Failed to update vaccination' });
+      }
+    });
+    
+   
 
       app.delete('/vaccinations/:id', async (req, res) => {
         try {
@@ -694,56 +706,58 @@ async function initializeDatabaseAndStartServer() {
 
       // Diagnostics routes
       app.get('/patients/:id/diagnostics', async (req, res) => {
-        try {
-          const { id } = req.params;
-          const sql = 'SELECT * FROM diagnostics WHERE patient_id = ? ORDER BY test_date DESC';
-          const results = await executeQuery(db, sql, [id]);
-          res.json(results);
-        } catch (err) {
-          console.error('Error fetching diagnostics:', err);
-          res.status(500).json({ message: 'Internal server error' });
-        }
-      });
+    try {
+        const { id } = req.params;
+        const sql = 'SELECT * FROM diagnostics WHERE patient_id = ? ORDER BY test_date DESC';
+        const results = await executeQuery(db, sql, [id]);
+        res.json(results);
+    } catch (err) {
+        console.error('Error fetching diagnostics:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
-      app.post('/patients/:id/diagnostics', upload.single('file'), async (req, res) => {
-        try {
-          const { id } = req.params;
-          const { test, observations, result, testDate } = req.body;
-          const filePath = req.file ? req.file.path : null;
-          
-          console.log('Received diagnostic data:', { 
-            test, observations, result, testDate, filePath 
-          });
-          
-          if (!test || !result || !testDate) {
+app.post('/patients/:id/diagnostics', upload.single('file'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { test, observations, result, testDate } = req.body;
+
+        // Store only the relative path (filename) in the database
+        const filePath = req.file ? req.file.filename : null;
+
+        console.log('Received diagnostic data:', {
+            test, observations, result, testDate, filePath
+        });
+
+        if (!test || !result || !testDate) {
             return res.status(400).json({ message: 'Missing required fields' });
-          }
-
-          const diagnosticId = uuidv4();
-          
-          const sql = `
-            INSERT INTO diagnostics 
-            (id, patient_id, test, observations, result, test_date, file_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `;
-          
-          await executeQuery(db, sql, [
-            diagnosticId, id, test, observations || null, result, testDate, filePath
-          ]);
-          
-          // Return the complete created record
-          const [newDiagnostic] = await executeQuery(db, 
-            'SELECT * FROM diagnostics WHERE id = ?', 
-            [diagnosticId]
-          );
-          
-          res.status(201).json(newDiagnostic);
-          
-        } catch (err) {
-          console.error('Error adding diagnostic:', err);
-          res.status(500).json({ message: 'Internal server error' });
         }
-      });
+
+        const diagnosticId = uuidv4();
+
+        const sql = `
+      INSERT INTO diagnostics 
+      (id, patient_id, test, observations, result, test_date, file_path)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+
+        await executeQuery(db, sql, [
+            diagnosticId, id, test, observations || null, result, testDate, filePath
+        ]);
+
+        // Return the complete created record
+        const [newDiagnostic] = await executeQuery(db,
+            'SELECT * FROM diagnostics WHERE id = ?',
+            [diagnosticId]
+        );
+
+        res.status(201).json(newDiagnostic);
+
+    } catch (err) {
+        console.error('Error adding diagnostic:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
       // Family History Routes
       app.get('/patients/:id/family-history', async (req, res) => {
@@ -1626,6 +1640,38 @@ async function initializeDatabaseAndStartServer() {
           res.status(500).json({ message: 'Internal server error' });
         }
       });
+
+
+
+// Add this endpoint to your server.js
+app.get('/view-pdf/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'uploads', filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Check if it's a PDF file
+    if (path.extname(filename).toLowerCase() === '.pdf') {
+      // Set headers to display inline
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
+      
+      // Create read stream and pipe it to the response
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } else {
+      // For non-PDF files, send as download
+      res.download(filePath);
+    }
+  } catch (error) {
+    console.error('Error serving PDF:', error);
+    res.status(500).json({ message: 'Error serving file' });
+  }
+});
 
       // Start the server
       app.listen(PORT, () => {
