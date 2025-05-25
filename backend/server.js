@@ -491,9 +491,9 @@ async function initializeDatabaseAndStartServer() {
             consultationId, id, consultation.type, consultation.date, consultation.notes,
             consultation.vaccine_name || null, consultation.childAge || null, 
             consultation.weight || null, consultation.height || null, 
-            consultation.headCircumference || null,
+            consultation.head_circumference || null,
             consultation.pulse || null, consultation.temperature || null,
-            consultation.bloodPressure || null, consultation.respiratoryRate || null,
+            consultation.blood_pressure || null, consultation.respiratory_rate || null,
             consultation.symptoms || null, consultation.diagnosis || null,
             consultation.medication || null, consultation.dosage || null
           ];
