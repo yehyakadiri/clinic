@@ -825,7 +825,7 @@ app.post('/patients/:id/diagnostics', upload.single('file'), async (req, res) =>
       app.post('/patients/:id/surgical-history', async (req, res) => {
         try {
           const { id } = req.params;
-          const { type, date, ageAtSurgery, notes } = req.body;
+          const { type, date, age_at_surgery, notes } = req.body;
           
           if (!type || !date) {
             return res.status(400).json({ message: 'Type and date are required' });
@@ -840,7 +840,7 @@ app.post('/patients/:id/diagnostics', upload.single('file'), async (req, res) =>
           `;
           
           await executeQuery(db, sql, [
-            recordId, id, type, date, ageAtSurgery || null, notes || null
+            recordId, id, type, date, age_at_surgery || null, notes || null
           ]);
           
           const [newRecord] = await executeQuery(db, 
