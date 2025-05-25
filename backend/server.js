@@ -489,7 +489,7 @@ async function initializeDatabaseAndStartServer() {
 
           const values = [
             consultationId, id, consultation.type, consultation.date, consultation.notes,
-            consultation.vaccineName || null, consultation.childAge || null, 
+            consultation.vaccine_name || null, consultation.childAge || null, 
             consultation.weight || null, consultation.height || null, 
             consultation.headCircumference || null,
             consultation.pulse || null, consultation.temperature || null,
