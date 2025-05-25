@@ -85,7 +85,8 @@ const Patients = () => {
                     <div>
                       <h3 className="font-medium text-gray-900">{patient.full_name}</h3>
                       <div className="text-sm text-gray-500 mt-1">
-                        {patient.age} • {patient.gender}
+                      <span>age: </span>
+                        {patient.age} • <span> gender: </span> {patient.gender}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {patient.address}
